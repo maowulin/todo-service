@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
+.pnpm-store/
+
+# Generated code
 backend/gen/
+frontend/src/gen/
 
 # Build outputs
 .next/
@@ -18,6 +22,7 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Runtime data
 pids
@@ -25,7 +30,7 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Coverage
 coverage/
 
 # IDE
@@ -37,3 +42,5 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
+
+.history
