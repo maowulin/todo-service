@@ -12,3 +12,17 @@ plugins:
     out: gen
     opt:
       - paths=source_relative
+  - name: es
+    out: ../frontend/src/gen
+    path: ../frontend/node_modules/.bin/protoc-gen-es
+    opt:
+      - target=ts
+      - import_extension=.ts
+      - ts_nocheck=false
+  - name: connect-es
+    out: ../frontend/src/gen
+    path: ../frontend/node_modules/.bin/protoc-gen-connect-es
+    opt:
+      - target=ts
+      - import_extension=.ts
+      - ts_nocheck=false
