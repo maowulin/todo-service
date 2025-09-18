@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -13,8 +14,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	todov1 "todo-service/gen/todo/v1"
-	"todo-service/gen/todo/v1/todov1connect"
+	todov1 "todo-service/gen"
+	"todo-service/gen/todov1connect"
 )
 
 type task struct {
@@ -104,9 +105,18 @@ func main() {
 	path, handler := todov1connect.NewTodoServiceHandler(server)
 	mux.Handle(path, handler)
 
-	fmt.Println("Server starting on :8080")
+	port := os.Getenv("BACKEND_PORT")
+	if port == "" {
+		port = os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
+	}
+	addr := ":" + port
+
+	fmt.Println("Server starting on", addr)
 	log.Fatal(http.ListenAndServe(
-		":8080",
+		addr,
 		h2c.NewHandler(mux, &http2.Server{}),
 	))
 }
