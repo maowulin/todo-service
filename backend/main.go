@@ -23,6 +23,8 @@ type task struct {
 	Text      string
 	Completed bool
 	CreatedAt time.Time
+	Favorite  bool
+	DueAt     string
 }
 
 type todoServer struct {
@@ -42,6 +44,8 @@ func (s *todoServer) AddTask(
 		Text:      req.Msg.Text,
 		Completed: false,
 		CreatedAt: time.Now(),
+		Favorite:  false,
+		DueAt:     "",
 	}
 
 	s.tasks = append(s.tasks, newTask)
@@ -52,6 +56,8 @@ func (s *todoServer) AddTask(
 			Text:      newTask.Text,
 			Completed: newTask.Completed,
 			CreatedAt: newTask.CreatedAt.Format(time.RFC3339),
+			Favorite:  newTask.Favorite,
+			DueAt:     newTask.DueAt,
 		},
 	}
 
@@ -72,6 +78,8 @@ func (s *todoServer) GetTasks(
 			Text:      t.Text,
 			Completed: t.Completed,
 			CreatedAt: t.CreatedAt.Format(time.RFC3339),
+			Favorite:  t.Favorite,
+			DueAt:     t.DueAt,
 		}
 	}
 
@@ -97,6 +105,39 @@ func (s *todoServer) DeleteTask(
 	}
 
 	return connect.NewResponse(&todov1.DeleteTaskResponse{Success: false}), nil
+}
+
+func (s *todoServer) UpdateTask(
+	ctx context.Context,
+	req *connect.Request[todov1.UpdateTaskRequest],
+) (*connect.Response[todov1.UpdateTaskResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, t := range s.tasks {
+		if t.ID == req.Msg.Id {
+			if req.Msg.Completed != nil {
+				t.Completed = req.Msg.GetCompleted()
+			}
+			if req.Msg.Favorite != nil {
+				t.Favorite = req.Msg.GetFavorite()
+			}
+			if req.Msg.DueAt != nil {
+				t.DueAt = req.Msg.GetDueAt()
+			}
+			updated := &todov1.Task{
+				Id:        t.ID,
+				Text:      t.Text,
+				Completed: t.Completed,
+				CreatedAt: t.CreatedAt.Format(time.RFC3339),
+				Favorite:  t.Favorite,
+				DueAt:     t.DueAt,
+			}
+			return connect.NewResponse(&todov1.UpdateTaskResponse{Success: true, Task: updated}), nil
+		}
+	}
+
+	return connect.NewResponse(&todov1.UpdateTaskResponse{Success: false, Task: nil}), nil
 }
 
 func main() {

@@ -5,13 +5,12 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	todov1 "todo-service/gen/todo/v1"
+	todov1 "todo-service/gen"
 )
 
 func TestAddTask(t *testing.T) {
 	server := &todoServer{}
 
-	// Test adding a task
 	req := &connect.Request[todov1.AddTaskRequest]{
 		Msg: &todov1.AddTaskRequest{Text: "Test task"},
 	}
@@ -37,7 +36,6 @@ func TestAddTask(t *testing.T) {
 func TestGetTasks(t *testing.T) {
 	server := &todoServer{}
 
-	// Add some tasks first
 	testTasks := []string{"Task 1", "Task 2", "Task 3"}
 	for _, text := range testTasks {
 		req := &connect.Request[todov1.AddTaskRequest]{
@@ -49,7 +47,6 @@ func TestGetTasks(t *testing.T) {
 		}
 	}
 
-	// Get all tasks
 	getReq := &connect.Request[todov1.GetTasksRequest]{
 		Msg: &todov1.GetTasksRequest{},
 	}
@@ -63,7 +60,6 @@ func TestGetTasks(t *testing.T) {
 		t.Errorf("Expected %d tasks, got %d", len(testTasks), len(resp.Msg.Tasks))
 	}
 
-	// Verify task contents
 	for i, task := range resp.Msg.Tasks {
 		if task.Text != testTasks[i] {
 			t.Errorf("Task %d: expected '%s', got '%s'", i, testTasks[i], task.Text)
@@ -74,7 +70,6 @@ func TestGetTasks(t *testing.T) {
 func TestDeleteTask(t *testing.T) {
 	server := &todoServer{}
 
-	// Add a task
 	addReq := &connect.Request[todov1.AddTaskRequest]{
 		Msg: &todov1.AddTaskRequest{Text: "Task to delete"},
 	}
@@ -86,7 +81,6 @@ func TestDeleteTask(t *testing.T) {
 
 	taskID := addResp.Msg.Task.Id
 
-	// Verify task exists
 	getReq := &connect.Request[todov1.GetTasksRequest]{
 		Msg: &todov1.GetTasksRequest{},
 	}
@@ -100,7 +94,6 @@ func TestDeleteTask(t *testing.T) {
 		t.Errorf("Expected 1 task before deletion, got %d", len(getResp.Msg.Tasks))
 	}
 
-	// Delete the task
 	deleteReq := &connect.Request[todov1.DeleteTaskRequest]{
 		Msg: &todov1.DeleteTaskRequest{Id: taskID},
 	}
@@ -114,7 +107,6 @@ func TestDeleteTask(t *testing.T) {
 		t.Error("Delete should have succeeded")
 	}
 
-	// Verify task is gone
 	getResp2, err := server.GetTasks(context.Background(), getReq)
 	if err != nil {
 		t.Fatalf("GetTasks failed: %v", err)
@@ -128,7 +120,6 @@ func TestDeleteTask(t *testing.T) {
 func TestDeleteNonExistentTask(t *testing.T) {
 	server := &todoServer{}
 
-	// Try to delete a task that doesn't exist
 	deleteReq := &connect.Request[todov1.DeleteTaskRequest]{
 		Msg: &todov1.DeleteTaskRequest{Id: "non-existent-id"},
 	}
@@ -140,5 +131,84 @@ func TestDeleteNonExistentTask(t *testing.T) {
 
 	if deleteResp.Msg.Success {
 		t.Error("Delete should have failed for non-existent task")
+	}
+}
+
+func TestUpdateTaskCompletedFavorite(t *testing.T) {
+	server := &todoServer{}
+
+	addResp, err := server.AddTask(context.Background(), &connect.Request[todov1.AddTaskRequest]{
+		Msg: &todov1.AddTaskRequest{Text: "To update"},
+	})
+	if err != nil {
+		t.Fatalf("AddTask failed: %v", err)
+	}
+	id := addResp.Msg.Task.Id
+
+	completed := true
+	favorite := true
+	upd := &connect.Request[todov1.UpdateTaskRequest]{
+		Msg: &todov1.UpdateTaskRequest{Id: id, Completed: &completed, Favorite: &favorite},
+	}
+
+	resp, err := server.UpdateTask(context.Background(), upd)
+	if err != nil {
+		t.Fatalf("UpdateTask failed: %v", err)
+	}
+	if !resp.Msg.Success {
+		t.Fatalf("expected success true")
+	}
+	if !resp.Msg.Task.Completed || !resp.Msg.Task.Favorite {
+		t.Errorf("expected completed and favorite true, got completed=%v favorite=%v", resp.Msg.Task.Completed, resp.Msg.Task.Favorite)
+	}
+}
+
+func TestUpdateTaskDueAtAndClear(t *testing.T) {
+	server := &todoServer{}
+
+	addResp, err := server.AddTask(context.Background(), &connect.Request[todov1.AddTaskRequest]{
+		Msg: &todov1.AddTaskRequest{Text: "With due"},
+	})
+	if err != nil {
+		t.Fatalf("AddTask failed: %v", err)
+	}
+	id := addResp.Msg.Task.Id
+
+	due := "2025-12-31T23:59:00Z"
+	setReq := &connect.Request[todov1.UpdateTaskRequest]{
+		Msg: &todov1.UpdateTaskRequest{Id: id, DueAt: &due},
+	}
+	setResp, err := server.UpdateTask(context.Background(), setReq)
+	if err != nil {
+		t.Fatalf("UpdateTask set due failed: %v", err)
+	}
+	if !setResp.Msg.Success || setResp.Msg.Task.DueAt != due {
+		t.Fatalf("expected due set to %s", due)
+	}
+
+	empty := ""
+	clearReq := &connect.Request[todov1.UpdateTaskRequest]{
+		Msg: &todov1.UpdateTaskRequest{Id: id, DueAt: &empty},
+	}
+	clearResp, err := server.UpdateTask(context.Background(), clearReq)
+	if err != nil {
+		t.Fatalf("UpdateTask clear due failed: %v", err)
+	}
+	if !clearResp.Msg.Success || clearResp.Msg.Task.DueAt != "" {
+		t.Fatalf("expected due cleared to empty, got %q", clearResp.Msg.Task.DueAt)
+	}
+}
+
+func TestUpdateTaskInvalidID(t *testing.T) {
+	server := &todoServer{}
+	completed := true
+	resp, err := server.UpdateTask(context.Background(), &connect.Request[todov1.UpdateTaskRequest]{
+		Msg: &todov1.UpdateTaskRequest{Id: "not-exist", Completed: &completed},
+	})
+	if err != nil {
+		t.Fatalf("UpdateTask failed: %v", err)
+	}
+	if resp.Msg.Success {
+		t.Fatalf("expected success false for invalid id")
 	}
 }
