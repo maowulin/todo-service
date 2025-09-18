@@ -11,6 +11,7 @@ service TodoService {
   rpc AddTask(AddTaskRequest) returns (AddTaskResponse) {}
   rpc GetTasks(GetTasksRequest) returns (GetTasksResponse) {}
   rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse) {}
+  rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse) {}
 }
 
 message Task {
@@ -18,6 +19,8 @@ message Task {
   string text = 2;
   bool completed = 3;
   string created_at = 4;
+  bool favorite = 5;
+  string due_at = 6; // RFC3339, optional
 }
 
 message AddTaskRequest {
@@ -40,4 +43,17 @@ message DeleteTaskRequest {
 
 message DeleteTaskResponse {
   bool success = 1;
+}
+
+// Partial update, fields are presence-aware
+message UpdateTaskRequest {
+  string id = 1;
+  optional bool completed = 2;
+  optional bool favorite = 3;
+  optional string due_at = 4; // set empty string to clear
+}
+
+message UpdateTaskResponse {
+  bool success = 1;
+  Task task = 2;
 }
