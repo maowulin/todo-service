@@ -1,35 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { todoClient } from "@/lib/todo-client";
-import { Task } from "../../../backend/gen/todo/v1/todo_pb";
+import {
+  Task,
+  GetTasksRequest,
+  AddTaskRequest,
+  DeleteTaskRequest,
+} from "@/gen/todo_pb";
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskText, setNewTaskText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
-      const response = await todoClient.getTasks({});
+      const response = await todoClient.getTasks(new GetTasksRequest());
       setTasks(response.tasks);
     } catch (error) {
       console.error("Failed to load tasks:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadTasks();
-  }, []);
+  }, [loadTasks]);
 
   const addTask = async () => {
     if (!newTaskText.trim()) return;
 
     setLoading(true);
     try {
-      await todoClient.addTask({ text: newTaskText });
+      await todoClient.addTask(new AddTaskRequest({ text: newTaskText }));
       setNewTaskText("");
-      await loadTasks(); // 重新加载任务列表
+      await loadTasks();
     } catch (error) {
       console.error("Failed to add task:", error);
     } finally {
@@ -39,8 +44,8 @@ export default function Home() {
 
   const deleteTask = async (id: string) => {
     try {
-      await todoClient.deleteTask({ id });
-      await loadTasks(); // 重新加载任务列表
+      await todoClient.deleteTask(new DeleteTaskRequest({ id }));
+      await loadTasks();
     } catch (error) {
       console.error("Failed to delete task:", error);
     }
@@ -51,7 +56,6 @@ export default function Home() {
       <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
         <h1 className="text-2xl font-bold text-center mb-6">待办事项</h1>
 
-        {/* 添加任务表单 */}
         <div className="flex gap-2 mb-6">
           <input
             type="text"
@@ -59,7 +63,7 @@ export default function Home() {
             onChange={(e) => setNewTaskText(e.target.value)}
             placeholder="输入新任务..."
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onKeyPress={(e) => e.key === "Enter" && addTask()}
+            onKeyDown={(e) => e.key === "Enter" && addTask()}
           />
           <button
             onClick={addTask}
@@ -70,7 +74,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 任务列表 */}
         <div className="space-y-2">
           {tasks.length === 0 ? (
             <p className="text-gray-500 text-center">暂无任务</p>
@@ -97,7 +100,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* 刷新按钮 */}
         <div className="mt-4 text-center">
           <button
             onClick={loadTasks}

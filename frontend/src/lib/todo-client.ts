@@ -1,10 +1,32 @@
 import { createPromiseClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
-import { TodoService } from "../../../backend/gen/todo/v1/todov1connect";
+import { TodoService } from "@/gen/todo_connect";
+import {
+  AddTaskRequest,
+  AddTaskResponse,
+  GetTasksRequest,
+  GetTasksResponse,
+  DeleteTaskRequest,
+  DeleteTaskResponse,
+} from "@/gen/todo_pb";
 
 const transport = createConnectTransport({
-  baseUrl: "http://localhost:8080",
-  useBinaryFormat: true, // 使用二进制格式
+  baseUrl: "/api",
+  useBinaryFormat: true,
 });
 
-export const todoClient = createPromiseClient(TodoService, transport);
+const client = createPromiseClient(TodoService, transport);
+
+export const todoClient = {
+  addTask: async (request: AddTaskRequest): Promise<AddTaskResponse> => {
+    return client.addTask(request);
+  },
+  getTasks: async (request: GetTasksRequest): Promise<GetTasksResponse> => {
+    return client.getTasks(request);
+  },
+  deleteTask: async (
+    request: DeleteTaskRequest
+  ): Promise<DeleteTaskResponse> => {
+    return client.deleteTask(request);
+  },
+};
