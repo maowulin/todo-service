@@ -8,6 +8,8 @@ import {
   GetTasksResponse,
   DeleteTaskRequest,
   DeleteTaskResponse,
+  UpdateTaskRequest,
+  UpdateTaskResponse,
 } from "@/gen/todo_pb";
 
 const transport = createConnectTransport({
@@ -28,5 +30,10 @@ export const todoClient = {
     request: DeleteTaskRequest
   ): Promise<DeleteTaskResponse> => {
     return client.deleteTask(request);
+  },
+  updateTask: async (
+    request: UpdateTaskRequest
+  ): Promise<UpdateTaskResponse> => {
+    return client.updateTask(request);
   },
 };
