@@ -4,6 +4,9 @@ package todo.v1;
 
 option go_package = "todo-service/gen/todo/v1;todov1";
 
+// Use binary wire format for better performance
+option optimize_for = SPEED;
+
 service TodoService {
   rpc AddTask(AddTaskRequest) returns (AddTaskResponse) {}
   rpc GetTasks(GetTasksRequest) returns (GetTasksResponse) {}
