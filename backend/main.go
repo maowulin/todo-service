@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -140,12 +141,7 @@ func (s *todoServer) UpdateTask(
 	return connect.NewResponse(&todov1.UpdateTaskResponse{Success: false, Task: nil}), nil
 }
 
-func main() {
-	server := &todoServer{}
-	mux := http.NewServeMux()
-	path, handler := todov1connect.NewTodoServiceHandler(server)
-	mux.Handle(path, handler)
-
+func getPort() string {
 	port := os.Getenv("BACKEND_PORT")
 	if port == "" {
 		port = os.Getenv("PORT")
@@ -153,11 +149,28 @@ func main() {
 			port = "8080"
 		}
 	}
-	addr := ":" + port
+	return port
+}
 
+func newHTTPServer(addr string) *http.Server {
+	server := &todoServer{}
+	mux := http.NewServeMux()
+	path, handler := todov1connect.NewTodoServiceHandler(server)
+	mux.Handle(path, handler)
+	return &http.Server{
+		Addr:    addr,
+		Handler: h2c.NewHandler(mux, &http2.Server{}),
+	}
+}
+
+func main() {
+	port := getPort()
+	addr := ":" + port
 	fmt.Println("Server starting on", addr)
-	log.Fatal(http.ListenAndServe(
-		addr,
-		h2c.NewHandler(mux, &http2.Server{}),
-	))
+	srv := newHTTPServer(addr)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Fatal(srv.Serve(ln))
 }
