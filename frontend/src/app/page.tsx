@@ -70,7 +70,13 @@ export default function HomePage() {
   };
 
   const updateTask = async (patch: { id: string; completed?: boolean; favorite?: boolean; dueAt?: string }) => {
-    await todoClient.updateTask(new UpdateTaskRequest(patch as any));
+    const req = new UpdateTaskRequest({
+      id: patch.id,
+      ...(typeof patch.completed !== "undefined" ? { completed: patch.completed } : {}),
+      ...(typeof patch.favorite !== "undefined" ? { favorite: patch.favorite } : {}),
+      ...(typeof patch.dueAt !== "undefined" ? { dueAt: patch.dueAt } : {}),
+    });
+    await todoClient.updateTask(req);
     await refresh();
   };
 

@@ -2,6 +2,7 @@
 
 import { Task } from "@/gen/todo_pb";
 import TaskItem from "./TaskItem";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 type Props = {
   title: string;
@@ -34,15 +35,17 @@ export default function TaskSection({
         {typeof collapsed !== "undefined" && (
           <button
             onClick={onToggleCollapsed}
-            className="px-2 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border bg-background hover:bg-accent"
           >
-            {collapsed ? "▶" : "▼"}
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         )}
-        <h2 className="font-semibold text-gray-700">
+        <h2 className="text-sm font-medium text-muted-foreground">
           {title}
           {typeof collapsed !== "undefined" && (
-            <span className="ml-2 text-gray-400">{tasks.length}</span>
+            <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded bg-secondary px-1 text-xs text-secondary-foreground">
+              {tasks.length}
+            </span>
           )}
         </h2>
       </div>

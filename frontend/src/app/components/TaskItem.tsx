@@ -1,6 +1,8 @@
 "use client";
 
 import { Task } from "@/gen/todo_pb";
+import { Star, StarOff, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Props = {
   task: Task;
@@ -22,48 +24,53 @@ export default function TaskItem({
   onDelete,
 }: Props) {
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-      <div className="flex items-center gap-3 flex-1">
-        <input
-          type="checkbox"
-          checked={task.completed}
-          onChange={() => onToggleCompleted(task)}
-          className="h-4 w-4"
-        />
-        <button
-          onClick={() => onToggleFavorite(task)}
-          className={`text-xl ${task.favorite ? "text-yellow-400" : "text-gray-300"}`}
-          title={task.favorite ? "取消收藏" : "收藏"}
-        >
-          ★
-        </button>
-        <div className="flex-1">
-          <p className={`text-gray-800 ${task.completed ? "line-through" : ""}`}>{task.text}</p>
-          <p className="text-xs text-gray-500">{new Date(task.createdAt).toLocaleString("zh-CN")}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <input
-              type="datetime-local"
-              value={toLocalInputValue(task.dueAt)}
-              onChange={(e) => onSetDueAt(task, e.target.value)}
-              className="text-xs border border-gray-300 rounded px-2 py-1"
-            />
-            {task.dueAt && (
-              <button
-                onClick={() => onClearDueAt(task)}
-                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
-              >
-                清除
-              </button>
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-1">
+          <input
+            type="checkbox"
+            checked={task.completed}
+            onChange={() => onToggleCompleted(task)}
+            className="h-4 w-4 rounded border-muted-foreground/30"
+          />
+          <button
+            onClick={() => onToggleFavorite(task)}
+            className={cn(
+              "h-8 w-8 inline-flex items-center justify-center rounded-md border hover:bg-accent",
+              task.favorite ? "text-yellow-500" : "text-muted-foreground"
             )}
+            title={task.favorite ? "取消收藏" : "收藏"}
+          >
+            {task.favorite ? <Star className="h-4 w-4 fill-yellow-500" /> : <StarOff className="h-4 w-4" />}
+          </button>
+          <div className="flex-1">
+            <p className={cn("text-sm", task.completed && "line-through text-muted-foreground")}>{task.text}</p>
+            <p className="text-xs text-muted-foreground">{new Date(task.createdAt).toLocaleString("zh-CN")}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="datetime-local"
+                value={toLocalInputValue(task.dueAt)}
+                onChange={(e) => onSetDueAt(task, e.target.value)}
+                className="text-xs h-8 w-[220px] rounded-md border border-input bg-background px-2"
+              />
+              {task.dueAt && (
+                <button
+                  onClick={() => onClearDueAt(task)}
+                  className="h-8 px-2 text-xs inline-flex items-center justify-center rounded-md border hover:bg-accent"
+                >
+                  清除
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        <button
+          onClick={() => onDelete(task.id)}
+          className="ml-2 h-8 px-3 inline-flex items-center justify-center rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
-      <button
-        onClick={() => onDelete(task.id)}
-        className="ml-2 px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
-      >
-        删除
-      </button>
     </div>
   );
 }
