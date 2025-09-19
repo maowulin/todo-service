@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate": "$HOME/go/bin/buf generate ../backend"
+    "generate": "pnpm -C ../backend generate"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.10.0",

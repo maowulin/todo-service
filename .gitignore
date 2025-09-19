@@ -4,6 +4,7 @@ node_modules/
 
 # Generated code
 backend/gen/
+backend/coverage.out
 frontend/src/gen/
 
 # Build outputs
