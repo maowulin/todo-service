@@ -70,3 +70,35 @@ pnpm build
 
 - 数据存储在内存中，重启后端进程数据会丢失
 - 浏览器通知需用户授权，移动端和部分浏览器可能受限
+
+## 持续集成（CI）
+- 工作流文件：.github/workflows/ci.yml（推送与拉取请求触发）
+  - 检出代码
+  - 安装 pnpm@8、Node.js 18（启用 pnpm 缓存）
+  - 安装 Go 1.22（启用 Go 缓存）
+  - 安装 buf（go install）并加入 PATH
+  - 安装前端依赖：pnpm -C frontend install
+  - 生成前后端代码：pnpm run generate
+  - 构建前后端：pnpm run build
+  - 后端测试：pnpm -C backend test
+  - 前端 Lint：pnpm -C frontend lint
+
+本地复现 CI 步骤
+```bash
+pnpm -C frontend install
+pnpm run generate
+pnpm run build
+pnpm -C backend test
+pnpm -C frontend lint
+```
+
+自定义建议（可选）
+- 版本：在 ci.yml 中调整 Node.js/Go 版本
+- 缓存：针对 .next/cache、Go 构建缓存增加 actions/cache 以加速
+- 产物：使用 actions/upload-artifact 上传 backend/server 与 frontend/.next 便于预览或部署
+- 构建并行：并行前后端构建以缩短时间
+- 质量门禁：结合分支保护，设置 CI 必须通过后方可合并
+
+相关文件
+- <mcfile name="ci.yml" path="/home/wulin/todo-service/.github/workflows/ci.yml"></mcfile>
+- <mcfile name="package.json" path="/home/wulin/todo-service/package.json"></mcfile>
