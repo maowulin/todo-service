@@ -20,6 +20,7 @@ export default function HomePage() {
   const [loadingAdd, setLoadingAdd] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [showFavorites, setShowFavorites] = useState(true);
 
   // 当前时间刷新（仅客户端）
   useEffect(() => {
@@ -41,7 +42,9 @@ export default function HomePage() {
     if (!iso) return "";
     const d = new Date(iso);
     const tzoffset = d.getTimezoneOffset() * 60000;
-    const localISOTime = new Date(d.getTime() - tzoffset).toISOString().slice(0, 16);
+    const localISOTime = new Date(d.getTime() - tzoffset)
+      .toISOString()
+      .slice(0, 16);
     return localISOTime;
   };
   const fromLocalInputValue = (value: string) => {
@@ -51,8 +54,15 @@ export default function HomePage() {
   };
 
   // 计算属性
-  const unfinished = useMemo(() => tasks.filter((t) => !t.completed), [tasks]);
-  const finished = useMemo(() => tasks.filter((t) => t.completed), [tasks]);
+  const favorites = useMemo(() => tasks.filter((t) => t.favorite), [tasks]);
+  const unfinished = useMemo(
+    () => tasks.filter((t) => !t.completed && !t.favorite),
+    [tasks]
+  );
+  const finished = useMemo(
+    () => tasks.filter((t) => t.completed && !t.favorite),
+    [tasks]
+  );
 
   // 交互方法
   const refresh = loadTasks;
@@ -69,11 +79,20 @@ export default function HomePage() {
     }
   };
 
-  const updateTask = async (patch: { id: string; completed?: boolean; favorite?: boolean; dueAt?: string }) => {
+  const updateTask = async (patch: {
+    id: string;
+    completed?: boolean;
+    favorite?: boolean;
+    dueAt?: string;
+  }) => {
     const req = new UpdateTaskRequest({
       id: patch.id,
-      ...(typeof patch.completed !== "undefined" ? { completed: patch.completed } : {}),
-      ...(typeof patch.favorite !== "undefined" ? { favorite: patch.favorite } : {}),
+      ...(typeof patch.completed !== "undefined"
+        ? { completed: patch.completed }
+        : {}),
+      ...(typeof patch.favorite !== "undefined"
+        ? { favorite: patch.favorite }
+        : {}),
       ...(typeof patch.dueAt !== "undefined" ? { dueAt: patch.dueAt } : {}),
     });
     await todoClient.updateTask(req);
@@ -106,7 +125,12 @@ export default function HomePage() {
     <main className="max-w-2xl mx-auto p-6">
       <Header now={now} />
 
-      <NewTaskBar value={newText} loading={loadingAdd} onChange={setNewText} onAdd={addTask} />
+      <NewTaskBar
+        value={newText}
+        loading={loadingAdd}
+        onChange={setNewText}
+        onAdd={addTask}
+      />
 
       <TaskSection
         title="未完成"
@@ -118,6 +142,22 @@ export default function HomePage() {
         onClearDueAt={clearDueAt}
         onDelete={deleteTask}
       />
+
+      {/* 已收藏分组，仅在有数据时展示 */}
+      {favorites.length > 0 && (
+        <TaskSection
+          title="已收藏"
+          tasks={favorites}
+          collapsed={!showFavorites}
+          onToggleCollapsed={() => setShowFavorites((v) => !v)}
+          toLocalInputValue={toLocalInputValue}
+          onToggleCompleted={toggleCompleted}
+          onToggleFavorite={toggleFavorite}
+          onSetDueAt={setDueAt}
+          onClearDueAt={clearDueAt}
+          onDelete={deleteTask}
+        />
+      )}
 
       <TaskSection
         title={`已完成`}

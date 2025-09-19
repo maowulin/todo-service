@@ -42,11 +42,9 @@ export default function TaskSection({
         )}
         <h2 className="text-sm font-medium text-muted-foreground">
           {title}
-          {typeof collapsed !== "undefined" && (
-            <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded bg-secondary px-1 text-xs text-secondary-foreground">
-              {tasks.length}
-            </span>
-          )}
+          <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded bg-secondary px-1 text-xs text-secondary-foreground">
+            {tasks.length}
+          </span>
         </h2>
       </div>
       {!collapsed && (
