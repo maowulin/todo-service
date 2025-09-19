@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Task,
   GetTasksRequest,
@@ -22,10 +22,24 @@ export default function HomePage() {
   const [now, setNow] = useState(new Date());
   const [showFavorites, setShowFavorites] = useState(true);
 
+  // 到期提醒去重集合（按 id|dueAt）
+  const notifiedRef = useRef<Set<string>>(new Set());
+
   // 当前时间刷新（仅客户端）
   useEffect(() => {
     const i = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(i);
+  }, []);
+
+  // 首次尝试申请通知权限
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {
+        console.log("Notification permission request failed");
+      });
+    }
   }, []);
 
   // 初始加载
@@ -63,6 +77,39 @@ export default function HomePage() {
     () => tasks.filter((t) => t.completed && !t.favorite),
     [tasks]
   );
+
+  // 基于 now/任务变化触发到期提醒
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+
+    const nowMs = now.getTime();
+    for (const t of tasks) {
+      if (!t.dueAt || t.completed) continue;
+      const dueMs = new Date(t.dueAt).getTime();
+      if (Number.isNaN(dueMs)) continue;
+      if (dueMs <= nowMs) {
+        const key = `${t.id}|${t.dueAt}`;
+        if (!notifiedRef.current.has(key)) {
+          try {
+            const n = new Notification("任务到期", {
+              body: `${t.text} - 截止: ${new Date(t.dueAt).toLocaleString(
+                "zh-CN"
+              )}`,
+              requireInteraction: false,
+            });
+            n.onclick = () => {
+              window.focus();
+            };
+          } catch (e) {
+            console.log("Notification error");
+          }
+          notifiedRef.current.add(key);
+        }
+      }
+    }
+  }, [now, tasks]);
 
   // 交互方法
   const refresh = loadTasks;
@@ -143,7 +190,6 @@ export default function HomePage() {
         onDelete={deleteTask}
       />
 
-      {/* 已收藏分组，仅在有数据时展示 */}
       {favorites.length > 0 && (
         <TaskSection
           title="已收藏"
