@@ -3,6 +3,7 @@
 import { Task } from "@/gen/todo_pb";
 import { Star, StarOff, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Props = {
   task: Task;
@@ -41,19 +42,32 @@ export default function TaskItem({
             )}
             title={task.favorite ? "取消收藏" : "收藏"}
           >
-            {task.favorite ? <Star className="h-4 w-4 fill-yellow-500" /> : <StarOff className="h-4 w-4" />}
+            {task.favorite ? (
+              <Star className="h-4 w-4 fill-yellow-500" />
+            ) : (
+              <StarOff className="h-4 w-4" />
+            )}
           </button>
           <div className="flex-1">
-            <p className={cn("text-sm", task.completed && "line-through text-muted-foreground")}>{task.text}</p>
-            <p className="text-xs text-muted-foreground">{new Date(task.createdAt).toLocaleString("zh-CN")}</p>
+            <p
+              className={cn(
+                "text-sm",
+                task.completed && "line-through text-muted-foreground"
+              )}
+            >
+              {task.text}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {new Date(task.createdAt).toLocaleString("zh-CN")}
+            </p>
             <div className="flex items-center gap-2 mt-1">
-              <input
-                type="datetime-local"
-                value={toLocalInputValue(task.dueAt)}
-                onChange={(e) => onSetDueAt(task, e.target.value)}
-                className="text-xs h-8 w-[220px] rounded-md border border-input bg-background px-2"
+              <DatePicker
+                value={task.dueAt}
+                onChange={(iso: string) => onSetDueAt(task, iso)}
+                placeholder="选择日期"
+                disabled={task.completed}
               />
-              {task.dueAt && (
+              {task.dueAt && !task.completed && (
                 <button
                   onClick={() => onClearDueAt(task)}
                   className="h-8 px-2 text-xs inline-flex items-center justify-center rounded-md border hover:bg-accent"
