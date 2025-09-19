@@ -14,7 +14,6 @@ import NewTaskBar from "./components/NewTaskBar";
 import TaskSection from "./components/TaskSection";
 
 export default function HomePage() {
-  // 状态
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newText, setNewText] = useState("");
   const [loadingAdd, setLoadingAdd] = useState(false);
@@ -22,27 +21,37 @@ export default function HomePage() {
   const [now, setNow] = useState(new Date());
   const [showFavorites, setShowFavorites] = useState(true);
 
-  // 到期提醒去重集合（按 id|dueAt）
   const notifiedRef = useRef<Set<string>>(new Set());
 
-  // 当前时间刷新（仅客户端）
+  const [mounted, setMounted] = useState(false);
+  const [notifyPermission, setNotifyPermission] = useState<"unsupported" | NotificationPermission>("default");
+
   useEffect(() => {
     const i = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(i);
   }, []);
 
-  // 首次尝试申请通知权限
   useEffect(() => {
+    setMounted(true);
     if (typeof window === "undefined") return;
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {
-        console.log("Notification permission request failed");
-      });
+    if (!("Notification" in window)) {
+      setNotifyPermission("unsupported");
+      return;
     }
+    setNotifyPermission(Notification.permission);
   }, []);
 
-  // 初始加载
+  const requestNotifyPermission = async () => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) return;
+    try {
+      const p = await Notification.requestPermission();
+      setNotifyPermission(p);
+    } catch {
+      console.log("Notification permission request failed");
+    }
+  };
+
   const loadTasks = async () => {
     const res = await todoClient.getTasks(new GetTasksRequest());
     setTasks(res.tasks);
@@ -51,14 +60,11 @@ export default function HomePage() {
     loadTasks();
   }, []);
 
-  // 本地工具
   const toLocalInputValue = (iso: string) => {
     if (!iso) return "";
     const d = new Date(iso);
     const tzoffset = d.getTimezoneOffset() * 60000;
-    const localISOTime = new Date(d.getTime() - tzoffset)
-      .toISOString()
-      .slice(0, 16);
+    const localISOTime = new Date(d.getTime() - tzoffset).toISOString().slice(0, 16);
     return localISOTime;
   };
   const fromLocalInputValue = (value: string) => {
@@ -67,22 +73,14 @@ export default function HomePage() {
     return d.toISOString();
   };
 
-  // 计算属性
   const favorites = useMemo(() => tasks.filter((t) => t.favorite), [tasks]);
-  const unfinished = useMemo(
-    () => tasks.filter((t) => !t.completed && !t.favorite),
-    [tasks]
-  );
-  const finished = useMemo(
-    () => tasks.filter((t) => t.completed && !t.favorite),
-    [tasks]
-  );
+  const unfinished = useMemo(() => tasks.filter((t) => !t.completed && !t.favorite), [tasks]);
+  const finished = useMemo(() => tasks.filter((t) => t.completed && !t.favorite), [tasks]);
 
-  // 基于 now/任务变化触发到期提醒
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
+    if (notifyPermission !== "granted") return;
 
     const nowMs = now.getTime();
     for (const t of tasks) {
@@ -94,24 +92,21 @@ export default function HomePage() {
         if (!notifiedRef.current.has(key)) {
           try {
             const n = new Notification("任务到期", {
-              body: `${t.text} - 截止: ${new Date(t.dueAt).toLocaleString(
-                "zh-CN"
-              )}`,
+              body: `${t.text} - 截止: ${new Date(t.dueAt).toLocaleString("zh-CN")}`,
               requireInteraction: false,
             });
             n.onclick = () => {
               window.focus();
             };
-          } catch (e) {
+          } catch {
             console.log("Notification error");
           }
           notifiedRef.current.add(key);
         }
       }
     }
-  }, [now, tasks]);
+  }, [now, tasks, notifyPermission]);
 
-  // 交互方法
   const refresh = loadTasks;
 
   const addTask = async () => {
@@ -126,20 +121,11 @@ export default function HomePage() {
     }
   };
 
-  const updateTask = async (patch: {
-    id: string;
-    completed?: boolean;
-    favorite?: boolean;
-    dueAt?: string;
-  }) => {
+  const updateTask = async (patch: { id: string; completed?: boolean; favorite?: boolean; dueAt?: string }) => {
     const req = new UpdateTaskRequest({
       id: patch.id,
-      ...(typeof patch.completed !== "undefined"
-        ? { completed: patch.completed }
-        : {}),
-      ...(typeof patch.favorite !== "undefined"
-        ? { favorite: patch.favorite }
-        : {}),
+      ...(typeof patch.completed !== "undefined" ? { completed: patch.completed } : {}),
+      ...(typeof patch.favorite !== "undefined" ? { favorite: patch.favorite } : {}),
       ...(typeof patch.dueAt !== "undefined" ? { dueAt: patch.dueAt } : {}),
     });
     await todoClient.updateTask(req);
@@ -172,23 +158,23 @@ export default function HomePage() {
     <main className="max-w-2xl mx-auto p-6">
       <Header now={now} />
 
-      <NewTaskBar
-        value={newText}
-        loading={loadingAdd}
-        onChange={setNewText}
-        onAdd={addTask}
-      />
+      {mounted && notifyPermission !== "granted" && notifyPermission !== "unsupported" && (
+        <div className="mb-4 px-3 py-2 rounded-md border bg-yellow-50 text-yellow-800 flex items-center justify-between">
+          <span className="text-xs">通知未开启，启用后可在截止时提醒你</span>
+          {notifyPermission === "default" ? (
+            <button
+              className="h-7 px-2 rounded-md border bg-background hover:bg-accent text-xs"
+              onClick={requestNotifyPermission}
+            >
+              启用提醒
+            </button>
+          ) : (
+            <span className="text-xs">浏览器已禁止，请在地址栏站点设置中允许通知</span>
+          )}
+        </div>
+      )}
 
-      <TaskSection
-        title="未完成"
-        tasks={unfinished}
-        toLocalInputValue={toLocalInputValue}
-        onToggleCompleted={toggleCompleted}
-        onToggleFavorite={toggleFavorite}
-        onSetDueAt={setDueAt}
-        onClearDueAt={clearDueAt}
-        onDelete={deleteTask}
-      />
+      <NewTaskBar value={newText} loading={loadingAdd} onChange={setNewText} onAdd={addTask} />
 
       {favorites.length > 0 && (
         <TaskSection
@@ -204,6 +190,17 @@ export default function HomePage() {
           onDelete={deleteTask}
         />
       )}
+
+      <TaskSection
+        title="未完成"
+        tasks={unfinished}
+        toLocalInputValue={toLocalInputValue}
+        onToggleCompleted={toggleCompleted}
+        onToggleFavorite={toggleFavorite}
+        onSetDueAt={setDueAt}
+        onClearDueAt={clearDueAt}
+        onDelete={deleteTask}
+      />
 
       <TaskSection
         title={`已完成`}
