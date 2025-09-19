@@ -33,9 +33,13 @@
   - macOS: brew install bufbuild/buf/buf
   - 或通用: go install github.com/bufbuild/buf/cmd/buf@latest
 
-### 启动
+### 安装与启动
+
+pnpm install
 
 pnpm dev
+
+pnpm build
 
 ## 使用说明
 

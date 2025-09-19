@@ -5,6 +5,7 @@
   "scripts": {
     "generate": "$HOME/go/bin/buf generate && node ./scripts/clean-generated.mjs",
     "dev": "go run main.go",
-    "test": "go test ./..."
+    "test": "go test ./...",
+    "build": "pnpm run generate && go build -o server"
   }
 }
