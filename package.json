@@ -6,7 +6,7 @@
     "frontend"
   ],
   "scripts": {
-    "install": "pnpm -C frontend install && pnpm -C backend install || true",
+    "install:all": "pnpm -C frontend install && pnpm -C backend install || true",
     "generate": "pnpm -C frontend generate && pnpm -C backend generate",
     "dev": "concurrently -k -n backend,frontend -c blue,green \"BACKEND_PORT=8081 pnpm -C backend dev\" \"BACKEND_ORIGIN=http://localhost:8081 pnpm -C frontend dev\"",
     "dev:backend": "pnpm -C backend dev",
