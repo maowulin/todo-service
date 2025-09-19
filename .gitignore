@@ -11,6 +11,7 @@ frontend/src/gen/
 .next/
 out/
 dist/
+backend/server
 
 # Environment variables
 .env
